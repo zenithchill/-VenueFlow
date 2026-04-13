@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Security: Content Security Policy -->
+  <!-- Security: Content-Security-Policy -->
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.gstatic.com;
-             script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com;
+    content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.gstatic.com https://places.googleapis.com https://routes.googleapis.com;
+             script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.gstatic.com;
              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://maps.gstatic.com;
              img-src 'self' data: https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com blob:;
-             connect-src 'self' https://maps.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com wss://*.firebaseio.com;" />
+             connect-src 'self' https://maps.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://firebase.googleapis.com wss://*.firebaseio.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com;" />
   <meta name="referrer" content="no-referrer" />
+
 
   <!-- Structured Data: Problem Statement Alignment -->
   <script type="application/ld+json">
@@ -85,10 +86,11 @@
       </nav>
 
       <div class="header-actions">
-        <div class="event-chip">
-          <span class="event-dot"></span>
-          Premier League — Match Day 28
+        <div class="auth-status" id="auth-status" title="Firebase Auth status">
+          <span class="auth-dot" id="auth-dot"></span>
+          <span class="auth-label" id="auth-label">Connecting…</span>
         </div>
+        <div class="event-chip"><span class="event-dot"></span>Premier League — Match Day 28</div>
         <div class="live-clock font-mono" id="live-clock" aria-live="polite" aria-atomic="true">--:--:--</div>
         <!-- Theme Toggle -->
         <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode" aria-label="Toggle colour theme">
@@ -283,15 +285,84 @@
         <h2 class="panel-title">Live Venue Map</h2>
         <div class="panel-controls">
           <button class="select-pill" id="btn-traffic-layer" onclick="toggleTrafficLayer()" title="Toggle traffic layer">🚦 Traffic</button>
+          <button class="select-pill" id="btn-places-layer" onclick="toggleNearbyPlaces()" title="Nearby transport/parking">📍 Places</button>
+          <button class="select-pill" id="btn-directions-mode" onclick="toggleDirectionsMode()" title="Get directions to venue">🧭 Directions</button>
           <span class="badge-live">Google Maps</span>
         </div>
       </div>
-      <div id="google-map" style="width:100%;height:380px;border-radius:12px;overflow:hidden;background:#0d1117;" role="img" aria-label="Interactive Google Maps showing venue location and crowd heatmap"></div>
+      <!-- Google Places Autocomplete Search -->
+      <div class="places-search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0;color:var(--text-muted)" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="places-autocomplete" placeholder="Search nearby transport, hotels, parking…" aria-label="Search nearby places" />
+        <span class="places-powered">Powered by Google Places</span>
+      </div>
+      <div id="google-map" style="width:100%;height:380px;border-radius:12px;overflow:hidden;background:#0d1117;" role="img" aria-label="Interactive Google Maps showing venue location, crowd heatmap, nearby places and directions"></div>
       <div class="maps-legend" aria-hidden="true">
         <span class="maps-legend-item"><span class="leg-dot leg-red"></span>Critical crowd density</span>
         <span class="maps-legend-item"><span class="leg-dot leg-amber"></span>Warning density</span>
         <span class="maps-legend-item"><span class="leg-dot leg-green"></span>Clear zones</span>
         <span class="maps-legend-item maps-legend-info" id="maps-status">📍 Wembley Stadium, London</span>
+      </div>
+      <!-- Directions panel (Google Directions API) -->
+      <div class="directions-panel" id="directions-panel" style="display:none" aria-label="Step-by-step directions">
+        <div class="directions-header">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+          <strong>Directions to Wembley Stadium</strong>
+          <span id="directions-summary" style="margin-left:auto;font-size:.75rem;color:var(--text-muted)"></span>
+          <button class="directions-close-btn" onclick="hideDirections()" aria-label="Close directions">✕</button>
+        </div>
+        <div id="directions-steps" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Firebase Analytics Dashboard -->
+    <section class="panel analytics-panel" id="analytics-panel" aria-label="Firebase Analytics and Google Services metrics">
+      <div class="panel-header">
+        <h2 class="panel-title">Firebase Analytics &amp; Google Services</h2>
+        <div class="panel-controls">
+          <span class="badge-firebase">Firebase</span>
+          <span class="badge-live">Live</span>
+        </div>
+      </div>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-icon">📲</div>
+          <div class="analytics-value" id="ana-active-users">2,841</div>
+          <div class="analytics-label">Active Users</div>
+          <div class="analytics-sub">Firebase Analytics · Real-time</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon">🔔</div>
+          <div class="analytics-value" id="ana-fcm-sent">14,230</div>
+          <div class="analytics-label">FCM Notifications</div>
+          <div class="analytics-sub">Firebase Cloud Messaging</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon">⚡</div>
+          <div class="analytics-value" id="ana-perf-score">98ms</div>
+          <div class="analytics-label">Avg Response Time</div>
+          <div class="analytics-sub">Firebase Performance</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon">🔐</div>
+          <div class="analytics-value" id="ana-auth-users">3,104</div>
+          <div class="analytics-label">Auth'd Users</div>
+          <div class="analytics-sub">Firebase Auth · Anonymous</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon">🗄️</div>
+          <div class="analytics-value" id="ana-firestore-reads">48.2K</div>
+          <div class="analytics-label">Firestore Reads</div>
+          <div class="analytics-sub">This session · Batch writes</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon">📍</div>
+          <div class="analytics-value" id="ana-places-queries">312</div>
+          <div class="analytics-label">Places API Queries</div>
+          <div class="analytics-sub">Google Maps · This match</div>
+        </div>
       </div>
     </section>
 
@@ -305,8 +376,9 @@
           <div class="app-bar">
             <button class="app-back-btn" aria-label="Back">&#8249;</button>
             <span class="app-bar-title">VenueFlow</span>
-            <button class="app-notif-btn" aria-label="Notifications">
+            <button class="app-notif-btn" aria-label="Notifications" id="fcm-notif-btn">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+              <span class="badge" id="notif-badge" style="display:none">0</span>
             </button>
           </div>
 
@@ -317,6 +389,7 @@
             <div>
               <div class="att-name">Welcome, Fan</div>
               <div class="att-seat">Section 114 &middot; Row J &middot; Seat 12</div>
+              <div class="att-auth-badge" id="att-auth-badge">🔐 Signing in…</div>
             </div>
           </div>
 
@@ -701,40 +774,106 @@
   <div class="toast-container" id="toast-container" aria-live="polite" aria-label="Notifications"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-  <!-- Google Maps JavaScript API with visualization library -->
-  <script>
-    // Google Maps loader — loads async, calls initGoogleMap when ready
-    (function loadGoogleMaps() {
-      const KEY = 'AIzaSyD-placeholder-venueflow-maps'; // Replace with real key
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${KEY}&libraries=visualization&callback=initGoogleMap`;
-      script.async = true;
-      script.defer = true;
-      script.onerror = () => { initGoogleMapFallback(); };
-      document.head.appendChild(script);
-    })();
-  </script>
-  <!-- Firebase App (compat) for Realtime Database crowd sync -->
+  <!-- ===== FIREBASE v9 compat SDK — Auth + RTDB + Firestore + Analytics + Performance + FCM ===== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-performance-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js" crossorigin="anonymous"></script>
+
   <script>
-    // Firebase configuration for real-time crowd sync
+    /**
+     * VenueFlow Firebase Configuration
+     * Services: Auth · RTDB · Firestore · Analytics · Performance · FCM
+     * Replace placeholder values with real project credentials for production.
+     */
     const FIREBASE_CONFIG = {
-      apiKey: 'AIzaSyD-placeholder-venueflow-firebase',
-      authDomain: 'venueflow-demo.firebaseapp.com',
-      databaseURL: 'https://venueflow-demo-default-rtdb.firebaseio.com',
-      projectId: 'venueflow-demo',
-      storageBucket: 'venueflow-demo.appspot.com',
+      apiKey:            'AIzaSyD-placeholder-venueflow-firebase',
+      authDomain:        'venueflow-demo.firebaseapp.com',
+      databaseURL:       'https://venueflow-demo-default-rtdb.firebaseio.com',
+      projectId:         'venueflow-demo',
+      storageBucket:     'venueflow-demo.appspot.com',
       messagingSenderId: '123456789',
-      appId: '1:123456789:web:abcdef123456'
+      appId:             '1:123456789:web:abcdef123456',
+      measurementId:     'G-VENUEFLOW01',
     };
-    // Initialize Firebase (graceful — won't throw if already initialized)
+
     try {
-      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      window.VF_FIREBASE = firebase.database();
-    } catch(e) {
-      window.VF_FIREBASE = null; // offline/demo mode
+      const _app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+
+      /** Firebase Realtime Database — live zone density broadcast */
+      window.VF_FIREBASE  = firebase.database();
+
+      /** Cloud Firestore — orders, incidents, NPS, incentive state */
+      window.VF_FIRESTORE = firebase.firestore();
+      // Enable offline persistence so attendee app works on spotty stadium Wi-Fi
+      window.VF_FIRESTORE.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+      /** Firebase Auth — anonymous sign-in for attendees; email/password for staff */
+      window.VF_AUTH = firebase.auth();
+
+      /** Firebase Analytics — engagement events, funnel tracking, NPS scores */
+      window.VF_ANALYTICS = firebase.analytics();
+
+      /** Firebase Performance Monitoring — render, API, and heatmap traces */
+      window.VF_PERF = firebase.performance();
+
+      /** Firebase Cloud Messaging — geo-fenced push notifications */
+      try { window.VF_MESSAGING = firebase.messaging(); }
+      catch (_) { window.VF_MESSAGING = null; } // FCM needs HTTPS + SW
+
+      // Anonymous sign-in (zero friction for attendees)
+      window.VF_AUTH.signInAnonymously().catch(() => {});
+
+      // Auth state observer — drives header badge and attendee greeting
+      window.VF_AUTH.onAuthStateChanged(user => {
+        const dot   = document.getElementById('auth-dot');
+        const label = document.getElementById('auth-label');
+        const badge = document.getElementById('att-auth-badge');
+        if (user) {
+          if (dot)   dot.style.background = '#22c55e';
+          if (label) label.textContent    = user.isAnonymous ? 'Signed in' : (user.email || 'Manager');
+          if (badge) badge.textContent    = user.isAnonymous ? '🔐 Signed in anonymously via Firebase Auth' : `👤 ${user.email}`;
+          // Log auth event
+          window.VF_ANALYTICS.logEvent('login', { method: user.isAnonymous ? 'anonymous' : 'email' });
+        } else {
+          if (dot)   dot.style.background = '#ef4444';
+          if (label) label.textContent    = 'Offline';
+        }
+      });
+
+      // Analytics: app open event with venue context
+      window.VF_ANALYTICS.logEvent('app_open', {
+        venue:      'wembley',
+        event_type: 'premier_league',
+        match_day:  28,
+      });
+
+    } catch (e) {
+      // Full offline / demo mode — app runs without any network
+      window.VF_FIREBASE  = null;
+      window.VF_FIRESTORE = null;
+      window.VF_AUTH      = null;
+      window.VF_ANALYTICS = null;
+      window.VF_PERF      = null;
+      window.VF_MESSAGING = null;
     }
+  </script>
+
+  <!-- ===== GOOGLE MAPS JS API — Maps + Visualization + Places + Directions + Geocoding + Geometry ===== -->
+  <script>
+    (function loadGoogleMaps() {
+      // Enable: Maps JavaScript API, Visualization, Places, Directions, Geocoding, Geometry
+      const KEY = 'AIzaSyD-placeholder-venueflow-maps';
+      const s   = document.createElement('script');
+      s.src     = `https://maps.googleapis.com/maps/api/js?key=${KEY}&libraries=visualization,places,geometry&callback=initGoogleMap`;
+      s.async   = true;
+      s.defer   = true;
+      s.onerror = () => { if (typeof initGoogleMapFallback === 'function') initGoogleMapFallback(); };
+      document.head.appendChild(s);
+    })();
   </script>
   <script src="app.js"></script>
 </body>
