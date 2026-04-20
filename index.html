@@ -9,7 +9,7 @@
              script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.gstatic.com;
              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://maps.gstatic.com;
              img-src 'self' data: https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com blob:;
-             connect-src 'self' https://maps.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://firebase.googleapis.com wss://*.firebaseio.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com;" />
+             connect-src 'self' https://maps.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://firebase.googleapis.com wss://*.firebaseio.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://us-central1-aiplatform.googleapis.com https://bigquery.googleapis.com https://language.googleapis.com https://pubsub.googleapis.com https://us-central1-venueflow-demo.cloudfunctions.net;" />
   <meta name="referrer" content="no-referrer" />
 
 
@@ -363,6 +363,85 @@
           <div class="analytics-label">Places API Queries</div>
           <div class="analytics-sub">Google Maps · This match</div>
         </div>
+      </div>
+    </section>
+
+    <!-- ===== GOOGLE CLOUD AI INTELLIGENCE PANEL ===== -->
+    <section class="panel ai-cloud-panel" id="ai-cloud-panel" aria-label="Google Cloud AI Intelligence — Vertex AI, BigQuery, Cloud NLP, Pub/Sub">
+      <div class="panel-header">
+        <h2 class="panel-title">Google Cloud AI Intelligence</h2>
+        <div class="panel-controls">
+          <span class="badge" style="background:rgba(66,133,244,.15);color:#4285f4;border:1px solid rgba(66,133,244,.3);font-size:.62rem;padding:.2rem .55rem;border-radius:20px;font-weight:700">Vertex AI</span>
+          <span class="badge" style="background:rgba(52,168,83,.15);color:#34a853;border:1px solid rgba(52,168,83,.3);font-size:.62rem;padding:.2rem .55rem;border-radius:20px;font-weight:700">BigQuery</span>
+          <span class="badge" style="background:rgba(251,188,4,.15);color:#c49000;border:1px solid rgba(251,188,4,.3);font-size:.62rem;padding:.2rem .55rem;border-radius:20px;font-weight:700">Cloud NLP</span>
+          <span class="badge" style="background:rgba(234,67,53,.15);color:#ea4335;border:1px solid rgba(234,67,53,.3);font-size:.62rem;padding:.2rem .55rem;border-radius:20px;font-weight:700">Pub/Sub</span>
+          <span class="badge-live">Live AI</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+
+        <!-- Vertex AI Gemini Pro Prediction -->
+        <div class="analytics-card" style="grid-column:span 2">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem">
+            <div class="analytics-icon">🤖</div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);letter-spacing:.04em">VERTEX AI — GEMINI 1.5 PRO</div>
+            <span id="vertex-risk-level" class="risk-badge risk-medium" style="margin-left:auto;font-size:.6rem;padding:.18rem .5rem;border-radius:20px;font-weight:800">MEDIUM</span>
+          </div>
+          <div id="vertex-ai-prediction" style="font-size:.78rem;line-height:1.55;color:var(--text-primary);margin-bottom:.7rem">Initialising Gemini Pro crowd intelligence engine…</div>
+          <div id="vertex-actions" style="font-size:.7rem;color:var(--text-secondary);line-height:1.7"></div>
+          <div style="display:flex;gap:1.2rem;margin-top:.7rem;font-size:.68rem;color:var(--text-muted)">
+            <span>Confidence: <strong id="vertex-confidence" style="color:var(--accent-green)">—</strong></span>
+            <span>ETA: <strong id="vertex-eta" style="color:var(--accent-amber)">—</strong></span>
+            <span style="margin-left:auto">Last run: <span id="vertex-last-run" class="font-mono">—</span></span>
+          </div>
+        </div>
+
+        <!-- Pub/Sub + Cloud Functions counters -->
+        <div class="analytics-card">
+          <div class="analytics-icon">📡</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);margin-bottom:.5rem">PUB/SUB STREAMING</div>
+          <div style="font-size:.72rem;line-height:2;color:var(--text-primary)">
+            <div>Published: <strong id="pubsub-published" style="color:var(--accent-blue)">0</strong></div>
+            <div>Acknowledged: <strong id="pubsub-acked" style="color:var(--accent-green)">0</strong></div>
+          </div>
+          <div style="margin-top:.5rem;font-size:.68rem;font-weight:700;color:var(--text-secondary)">CLOUD FUNCTIONS</div>
+          <div style="font-size:.72rem;color:var(--text-primary)">
+            Invocations: <strong id="cf-invocations" style="color:var(--accent-purple, #a855f7)">0</strong>
+          </div>
+          <div style="font-size:.62rem;color:var(--text-muted);margin-top:.4rem">Topic: zone-density-alerts<br>Region: us-central1</div>
+        </div>
+
+        <!-- BigQuery Zone Analytics -->
+        <div class="analytics-card">
+          <div class="analytics-icon">🗄️</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);margin-bottom:.35rem">BIGQUERY — ZONE ANALYTICS</div>
+          <div style="font-size:.62rem;color:var(--text-muted);margin-bottom:.4rem">AVG density (last 1 h)</div>
+          <div id="bq-query-results" style="font-size:.68rem;line-height:1.9">
+            <div style="color:var(--text-muted);font-style:italic">Querying venueflow_analytics…</div>
+          </div>
+          <div style="font-size:.62rem;color:var(--text-muted);margin-top:.4rem">
+            Last query: <span id="bq-last-query" class="font-mono">—</span>
+          </div>
+        </div>
+
+        <!-- Cloud Natural Language Sentiment -->
+        <div class="analytics-card">
+          <div class="analytics-icon">💬</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);margin-bottom:.5rem">CLOUD NLP — FAN SENTIMENT</div>
+          <div style="display:flex;align-items:center;gap:.8rem">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--accent-green)" id="nlp-sentiment-score">—</div>
+            <div>
+              <div id="nlp-sentiment-label" style="font-size:.7rem;font-weight:700;color:var(--accent-green)">Analysing…</div>
+              <div style="font-size:.62rem;color:var(--text-muted)">Positive responses: <span id="nlp-positive-count">—</span></div>
+            </div>
+          </div>
+          <div style="font-size:.62rem;color:var(--text-muted);margin-top:.5rem">
+            Source: fan feedback · NPS polls · SOS notes<br>
+            Model: Cloud Natural Language API v1
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -876,5 +955,7 @@
     })();
   </script>
   <script src="app.js"></script>
+  <!-- Google Cloud AI: Vertex AI, BigQuery, Cloud NLP, Pub/Sub, Cloud Functions -->
+  <script src="vertex-ai-module.js" defer></script>
 </body>
 </html>
