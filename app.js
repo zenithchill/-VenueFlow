@@ -510,6 +510,13 @@ function drawHeatmap(canvasId, zones) {
   canvas._zones = zones.map(z => ({ ...z, cx: z.x * W, cy: z.y * H }));
 }
 
+/**
+ * Advance the simulation by nudging each zone's crowd density and
+ * recomputing the estimated wait time from the density formula.
+ * Density is clamped to [0.08, 1.0]; wait = max(1, round(density × 32)).
+ *
+ * @returns {void}
+ */
 function nudgeDensities() {
   ZONES.forEach(z => {
     z.density = Math.max(.08, Math.min(1, z.density + (Math.random() - .47) * .06));
@@ -517,6 +524,13 @@ function nudgeDensities() {
   });
 }
 
+/**
+ * Render the sorted, filtered list of zone-status rows in the heatmap sidebar.
+ * Applies both the active severity filter and the current search query.
+ * Clicking a row opens the zone drill-down modal.
+ *
+ * @returns {void}
+ */
 function renderZoneAlerts() {
   const el = $('zone-alerts');
   if (!el) return;
@@ -670,6 +684,14 @@ function openZoneModal(z) {
 // ─────────────────────────────────────────────
 // QUEUE CHART
 // ─────────────────────────────────────────────
+/**
+ * Build (or rebuild) the Chart.js bar chart showing estimated wait times
+ * for the six highest-traffic gates and concessions.
+ * Colours bars red (>20 min), amber (>12 min), or green (≤12 min).
+ * Destroys any previous chart instance before creating a new one.
+ *
+ * @returns {void}
+ */
 function buildQueueChart() {
   const canvas = $('queue-chart');
   if (!canvas) return;
@@ -717,6 +739,13 @@ const AI_ICON_SVG = {
   info: { cls: 'ae-info', svg: '<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>' },
 };
 
+/**
+ * Prepend the next AI event from the AI_EVENTS rotation to the feed panel.
+ * Cycles through events in round-robin order and caps the feed at 12 items.
+ * Each entry shows the event message, icon, and current timestamp.
+ *
+ * @returns {void}
+ */
 function pushAIEvent() {
   const feed = $('ai-feed');
   if (!feed) return;
@@ -739,6 +768,13 @@ function pushAIEvent() {
 // ─────────────────────────────────────────────
 // STAFF DISPATCH
 // ─────────────────────────────────────────────
+/**
+ * Render the staff dispatch board from the STAFF data array.
+ * Shows each staff member's name, role, location and a Dispatch button.
+ * Dispatched members show a disabled 'Deployed' state.
+ *
+ * @returns {void}
+ */
 function renderDispatch() {
   const grid = $('dispatch-grid');
   if (!grid) return;
@@ -760,6 +796,13 @@ function renderDispatch() {
   });
 }
 
+/**
+ * Mark a staff member as dispatched, re-render the dispatch board,
+ * increment the resolved-today KPI counter, and show a success toast.
+ *
+ * @param {number} i - Index into the STAFF array
+ * @returns {void}
+ */
 function dispatchStaff(i) {
   STAFF[i].dispatched = true;
   renderDispatch();
@@ -777,6 +820,13 @@ const INC_ICONS = {
   resolved: { svg: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>', cls: 'inc-icon-resolved' },
 };
 
+/**
+ * Render the incident feed applying the active severity filter and search query.
+ * Updates the open-incident count badge and provides per-item Resolve buttons.
+ * Shows an empty-state message when no incidents match.
+ *
+ * @returns {void}
+ */
 function renderIncidents() {
   const feed = $('incident-feed');
   const counter = $('incident-count');
@@ -817,6 +867,14 @@ function renderIncidents() {
   });
 }
 
+/**
+ * Mark an incident as resolved by its index within the currently filtered list.
+ * Updates the INCIDENTS array, increments the resolved KPI, re-renders the feed,
+ * and shows a success toast notification.
+ *
+ * @param {number} filteredIdx - Index within the currently displayed (filtered) incident list
+ * @returns {void}
+ */
 function resolveIncident(filteredIdx) {
   // Find the actual index in INCIDENTS that matches what's currently filtered
   const filtered = INCIDENTS.filter(incidentMatchesFilter);
@@ -927,6 +985,13 @@ function deactivateIncentive(i) {
 // ─────────────────────────────────────────────
 // KPI UPDATES
 // ─────────────────────────────────────────────
+/**
+ * Nudge all KPI display values to simulate live telemetry drift.
+ * Updates occupancy count, F&B revenue, fan satisfaction score and
+ * the active bottleneck count with its average wait sub-label.
+ *
+ * @returns {void}
+ */
 function updateKPIs() {
   const occ = $('val-occupancy');
   const fill = $('fill-occupancy');
@@ -1149,6 +1214,15 @@ const TOAST_ICONS = {
   info: '<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>',
 };
 
+/**
+ * Display a transient toast notification in the toast container.
+ * The toast auto-dismisses after 3.8 s with a fade-out transition.
+ *
+ * @param {'success'|'error'|'info'} type - Visual variant controlling icon and colour
+ * @param {string} title - Bold heading text
+ * @param {string} sub   - Secondary detail text (XSS-sanitised before display)
+ * @returns {void}
+ */
 function showToast(type, title, sub) {
   const container = $('toast-container');
   if (!container) return;
@@ -1172,6 +1246,15 @@ function showToast(type, title, sub) {
 // ─────────────────────────────────────────────
 // MAIN RENDER CYCLE
 // ─────────────────────────────────────────────
+/**
+ * Execute a complete UI refresh cycle:
+ * nudge densities → redraw heatmap → re-render zone alerts → rebuild chart
+ * → re-render incidents & incentives → update KPIs & filter counts.
+ * Cycles the route suggestion message every 3rd tick.
+ * Called by setInterval every 8 seconds.
+ *
+ * @returns {void}
+ */
 function fullRender() {
   nudgeDensities();
   drawHeatmap('venue-heatmap', ZONES);
@@ -1185,6 +1268,15 @@ function fullRender() {
   if (routeTick % 3 === 0) cycleRoute();
 }
 
+/**
+ * Application entry point.
+ * Applies the saved colour theme, loads Pretext, performs the initial
+ * full render, sets up all repeating intervals, and fires the first AI event.
+ * Automatically called on DOMContentLoaded (or immediately if DOM is already ready).
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function init() {
   // Apply saved theme (light by default)
   applyTheme(getTheme());
@@ -2268,6 +2360,14 @@ function _getFCMToken(messaging) {
 // FIREBASE REALTIME DATABASE SYNC
 // Pushes live zone density data for attendee apps
 // ─────────────────────────────────────────────
+/**
+ * Initialise the Firebase Realtime Database sync pipeline.
+ * Performs an immediate zone snapshot push, then schedules recurring
+ * pushes every 5 seconds to keep attendee devices up to date.
+ * Silently skips in offline/demo mode when VF_FIREBASE is null.
+ *
+ * @returns {void}
+ */
 function initFirebaseSync() {
   if (!window.VF_FIREBASE) return; // offline / demo mode
   try {
@@ -2282,6 +2382,14 @@ function initFirebaseSync() {
   }
 }
 
+/**
+ * Write the current zone density snapshot to Firebase Realtime Database
+ * at the path venues/wembley/zones. Each zone entry includes its density
+ * as an integer 0–100, wait time, status classification, and a Unix timestamp.
+ *
+ * @param {import('firebase/database').Database} db - Firebase RTDB instance
+ * @returns {void}
+ */
 function pushZonesToFirebase(db) {
   try {
     const snapshot = {};
